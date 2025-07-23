@@ -16,6 +16,8 @@ const app = express();
 app.use(cors());
 
 
+//hello there
+
 server.tool(
     "addTwoNumbers",
     "Add two numbers",
