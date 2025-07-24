@@ -1,5 +1,6 @@
 export const searchShopTool = async ({ query, context, storefrontUrl }) => {
     try {
+        // console.log("searchShopTool called with query: ", query, "context: ", context, "storefrontUrl: ", storefrontUrl);
         // Send MCP-formatted request to external MCP server
         const remoteMcpResponse = await fetch(`https://${storefrontUrl}/api/mcp`, {
             method: "POST",

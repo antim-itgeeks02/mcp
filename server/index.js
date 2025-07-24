@@ -10,7 +10,8 @@ import { searchShopTool } from "./searchShop.tool.js";
 import { searchFaqsTool } from "./searchFaqs.tool.js";
 import { getCartTool } from "./getCart.tool.js";
 import { updateCartTool } from "./updateCart.tool.js";
-
+import { handleProductResult, handleFaqsResult, handleCartResult, handleUpdateCartResult } from "./toolResultHandler.js";
+    
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 
@@ -117,7 +118,7 @@ const tools = [
             cartId: z.string().optional(),
             storefrontUrl: z.string()
         },
-        handler: searchShopTool
+        handler: getCartTool
     },
     {
         name: "update_cart",
@@ -133,7 +134,7 @@ const tools = [
             })),
             storefrontUrl: z.string()
         },
-        handler: searchShopTool
+        handler: updateCartTool
     },
 ]
 // Register all tools with the server
@@ -212,36 +213,17 @@ app.post('/chat', async (req, res) => {
         if (tool) {
             // PATCH: If storefrontUrl is missing, fill it in from the request
             if (part.functionCall.name === "search_shop_catalog") {
-                if (!part.functionCall.args.storefrontUrl && storefrontUrl) {
-                    part.functionCall.args.storefrontUrl = storefrontUrl;
-                }
-            }
-            const toolResult = await tool.handler(part.functionCall.args, message);
-            let result = toolResult.content[0].text;
-            let parsed;
-            try {
-                parsed = typeof result === "string" ? JSON.parse(result) : result;
-            } catch (e) {
-                parsed = null;
-            }
-            console.log("parsed", parsed);
-            console.log("parsed", Array.isArray(parsed.products));
-            
-            // Beautify the response if products are present
-            if (parsed && Array.isArray(parsed.products)) {
-                if (parsed.products.length === 0) {
-                    responseText = "No products found for your search.";
-                } else {
-                    responseText = `Found ${parsed.products.length} products:**\n\n`;
-                    responseText += parsed.products.map(product => {
-                        return `- [${product.title}](${product.url}) - $${product.price_range.min} ${product.price_range.currency}\n  ![${product.title}](${product.image_url})`;
-                    }).join('\n\n');
-                }
+                responseText = await handleProductResult(tool, part, message, storefrontUrl);
+            } else if (part.functionCall.name === "search_shop_policies_and_faqs") {
+                responseText = await handleFaqsResult(tool, part, message, storefrontUrl);
+            } else if (part.functionCall.name === "get_cart") {
+                responseText = await handleCartResult(tool, part, message, storefrontUrl);
+            } else if (part.functionCall.name === "update_cart") {
+                responseText = await handleUpdateCartResult(tool, part, message, storefrontUrl);
             } else {
-                // Fallback: just show the raw tool result
-                responseText = result;
+                responseText = await tool.handler(part.functionCall.args, message);
             }
-            responseText = toolResult.content[0].text;
+            // responseText = await tool.handler(part.functionCall.args, message);
         } else {
             responseText = "Unknown tool: " + part.functionCall.name;
         }

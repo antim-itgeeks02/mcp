@@ -1,5 +1,6 @@
 export async function searchFaqsTool({ query, context, storefrontUrl }) {
     try {
+        // console.log("searchFaqsTool called with query: ", query, "context: ", context, "storefrontUrl: ", storefrontUrl);
         const remoteMcpResponse = await fetch(`https://${storefrontUrl}/api/mcp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -10,8 +11,8 @@ export async function searchFaqsTool({ query, context, storefrontUrl }) {
                 params: {
                     name: "search_shop_policies_and_faqs",
                     arguments: {
-                        query: query || "",
-                        context: context || ""
+                        query: query ? query : "",
+                        context: context ? context : ""
                     }
                 }
             })

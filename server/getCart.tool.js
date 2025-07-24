@@ -21,7 +21,20 @@ export async function getCartTool({ query, context, cartId, storefrontUrl }) {
         if (!json.result || !json.result.content) {
             return { content: [{ type: "text", text: "Remote server returned no content." }] };
         }
-        return { content: json.result.content };
+        const contentArr = json.result.content;
+        if (
+            Array.isArray(contentArr) &&
+            contentArr.length > 0 &&
+            typeof contentArr[0].text === "string"
+        ) {
+            try {
+                const parsed = JSON.parse(contentArr[0].text);
+                return { content: [{ ...contentArr[0], parsed }] };
+            } catch (e) {
+                return { content: contentArr };
+            }
+        }
+        return { content: contentArr };
     } catch (err) {
         console.error("Error contacting remote MCP server:", err);
         return { content: [{ type: "text", text: "Failed to contact the remote MCP server." }] };
