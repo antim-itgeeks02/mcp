@@ -2,12 +2,15 @@
   "dependencies": {
     "@google/genai": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.8.0",
+    "axios": "^1.11.0",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
+    "mongodb": "^6.18.0",
+    "ollama": "^0.5.17",
     "twitter-api-v2": "^1.22.0",
-    "zod": "^3.24.2"
+    "zod": "^3.25.76"
   },
   "name": "server",
   "version": "1.0.0",

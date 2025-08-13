@@ -1,16 +1,20 @@
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { createPost } from "./mcp.tool.js";
+// import { createPost } from "./mcp.tool.js";
 import { z } from "zod";
 import cors from "cors";
 import bodyParser from "body-parser";
 import { GoogleGenAI } from "@google/genai"
-import { searchShopTool } from "./searchShop.tool.js";
-import { searchFaqsTool } from "./searchFaqs.tool.js";
-import { getCartTool } from "./getCart.tool.js";
-import { updateCartTool } from "./updateCart.tool.js";
+// import { searchShopTool } from "./searchShop.tool.js";
+// import { searchFaqsTool } from "./searchFaqs.tool.js";
+// import { getCartTool } from "./getCart.tool.js";
+// import { updateCartTool } from "./updateCart.tool.js";
 import { handleProductResult, handleFaqsResult, handleCartResult, handleUpdateCartResult } from "./toolResultHandler.js";
+import { config } from 'dotenv';
+import { registerTools } from "./tools.js";
+config()
+
     
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -35,109 +39,10 @@ function extractNumbersFromText(text) {
 }
 
 //hello there
-const tools = [
-    {
-        name: "addTwoNumbers",
-        description: "Add two numbers",
-        schema: {
-            a: z.number(),
-            b: z.number()
-        },
-        handler: async (arg, userMessage) => {
-            console.log("arg", arg);
-            let { a, b } = arg;
-            if (typeof a !== "number" || typeof b !== "number" || isNaN(a) || isNaN(b)) {
-                // Try to extract numbers from the user message
-                if (userMessage) {
-                    const nums = extractNumbersFromText(userMessage);
-                    if (nums.length >= 2) {
-                        a = nums[0];
-                        b = nums[1];
-                    }
-                }
-            }
-            if (typeof a !== "number" || typeof b !== "number" || isNaN(a) || isNaN(b)) {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: "Please provide two numbers, e.g., 'add 2 and 3'."
-                        }
-                    ]
-                }
-            }
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `The sum of ${a} and ${b} is ${a + b}`
-                    }
-                ]
-            }
-        }
-    },
-
-    // {
-    //     name: "createPost",
-    //     description: "Create a post on X formally known as Twitter ",
-    //     schema: {
-    //         status: z.string()
-    //     },
-    //     handler: async (arg) => {
-    //         const { status } = arg;
-    //         return createPost(status);
-    //     }
-    // },
-
-    {
-        name: "search_shop_catalog",
-        description: "Search the shop catalog for a product",
-        schema: {
-            query: z.string(),
-            context: z.string().optional().default(""),
-            storefrontUrl: z.string()
-        },
-        handler: searchShopTool
-    },
-    {
-        name: "search_shop_policies_and_faqs",
-        description: "Search the shop policies and faqs",
-        schema: {
-            query: z.string(),
-            context: z.string().optional().default(""),
-            storefrontUrl: z.string()
-        },
-        handler: searchFaqsTool
-    },
-    {
-        name: "get_cart",
-        description: "Get the cart details from your shopify cart",
-        schema: {
-            query: z.string().optional(),
-            context: z.string().optional().default(""),
-            cartId: z.string().optional(),
-            storefrontUrl: z.string()
-        },
-        handler: getCartTool
-    },
-    {
-        name: "update_cart",
-        description: "Update your shopify cart with the given items or new one  ",
-        schema: {
-            query: z.string().optional(),   
-            context: z.string().optional().default(""),
-            cartId: z.string().optional(),
-            lines: z.array(z.object({
-                lines_item_id: z.string().optional(),
-                merchandise_id: z.string().optional(),
-                quantity: z.number()
-            })),
-            storefrontUrl: z.string()
-        },
-        handler: updateCartTool
-    },
-]
+// const tools = registerTools(server)
+// console.log(registerTools(server))
 // Register all tools with the server
+const tools = registerTools;
 tools.forEach(tool => {
     server.tool(
         tool.name,
@@ -200,12 +105,13 @@ app.post('/chat', async (req, res) => {
     chatHistory.push({ role: "user", parts: [{ text: message, type: "text" }] });
     // console.log("message", message, "storefrontUrl", storefrontUrl);
     const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents: chatHistory,
         config: { tools: [{ functionDeclarations: tools }] }
     });
     console.log(response.candidates[0].content.parts[0]);
     const part = response.candidates[0].content.parts[0];
+    console.log(part)
     let responseText = "";
     if (part.functionCall) {
         // Find the tool by name
@@ -236,5 +142,6 @@ app.post('/chat', async (req, res) => {
 });
 
 app.listen(3001, () => {
+  console.log(server)
     console.log("Server is running on http://localhost:3001");
 });
